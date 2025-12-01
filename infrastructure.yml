@@ -1,0 +1,302 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >-
+  Infrastructure AWS pour une application web avec base de donnees, comprenant
+  VPC, subnets public et prive, Internet Gateway, NAT Gateway, Security Groups
+  instances EC2, monitoring CloudWatch, alertes SNS, et stockage logs S3.
+
+Parameters:
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR du VPC
+  PublicSubnetCidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR du subnet public
+  PrivateSubnetCidr:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: CIDR du subnet prive
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Nom de la cle SSH pour les instances EC2
+    Default: key-pair
+  AllowedIp:
+    Type: String
+    Description: IP autorisee pour acces SSH/HTTP/HTTPS (format CIDR)
+  ElasticIpAllocationId:
+    Type: String
+    Description: Allocation ID de l Elastic IP dans votre compte AWS
+
+Resources:
+
+  #######
+  # VPC #
+  #######
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: VPC-App
+
+  ###########
+  # Subnets #
+  ###########
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnetCidr
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: Subnet-Public
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetCidr
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select [0, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: Subnet-Prive
+
+  ####################
+  # Internet Gateway #
+  ####################
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: IGW-App
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  ################
+  # Route Tables #
+  ################
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: RouteTable-Public-App
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachInternetGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  ###############
+  # NAT Gateway #
+  ###############
+  EIPNatGateway:
+    Type: AWS::EC2::EIP
+    DependsOn: AttachInternetGateway
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIPNatGateway.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: NAT-Gateway-App
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: RouteTable-Prive-App
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  PrivateRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
+
+  ###################
+  # Security Groups #
+  ###################
+  WebAppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Autorise HTTP, HTTPS, SSH depuis IP autorisee
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedIp
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Autorise le port DB depuis SG WebApp seulement
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          SourceSecurityGroupId: !Ref WebAppSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !Ref WebAppSecurityGroup
+
+  ##################
+  # Instances EC2  #
+  ##################
+  WebAppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      ImageId: ami-0904377e993c8af99  # WebServerPublic__APP_Dashboard
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref PublicSubnet
+          PrivateIpAddress: 10.0.1.83
+          GroupSet:
+            - !Ref WebAppSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y awslogs
+          systemctl start awslogsd
+          systemctl enable awslogsd.service
+          sed -i 's/region = .*/region = ${AWS::Region}/' /etc/awslogs/awscli.conf
+          cat <<EOF >/etc/awslogs/config/webapp.conf
+          [general]
+          state_file = /var/lib/awslogs/agent-state  
+          [/var/log/messages]
+          file = /var/log/messages
+          log_group_name = /aws/ec2/webapp
+          log_stream_name = {instance_id}/messages
+          datetime_format = %b %d %H:%M:%S
+          EOF
+          systemctl restart awslogsd
+
+      Tags:
+        - Key: Name
+          Value: Instance-WebApp-2
+
+  WebAppInstanceEIPAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !Ref ElasticIpAllocationId
+      InstanceId: !Ref WebAppInstance
+
+  DatabaseInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      ImageId: ami-0f216e84a5140bf0b  # Image_Mongo-private_App_Dashboard
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: false
+          DeviceIndex: 0
+          SubnetId: !Ref PrivateSubnet
+          PrivateIpAddress: 10.0.2.213
+          GroupSet:
+            - !Ref DatabaseSecurityGroup
+      Tags:
+        - Key: Name
+          Value: Instance-DB-App-2
+
+  ##########################
+  # Elem Monitoring CloudWatch #
+  ##########################
+  WebAppAlarmTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: WebApp-CPU-Alarme
+
+  WebAppAlarmSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref WebAppAlarmTopic
+      Protocol: email
+      Endpoint: ychahbouni24@gmail.com
+
+  WebAppCPUAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: "Alarme CPU > 80% sur EC2 WebApp"
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WebAppInstance
+      Statistic: Average
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 80.0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref WebAppAlarmTopic
+      OKActions:
+        - !Ref WebAppAlarmTopic
+      TreatMissingData: missing
+
+  ##################
+  # Bucket S3 Logs #
+  ##################
+  WebAppLogsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: nom-unique-logs-webapp-123456
+
+Outputs:
+  WebAppPublicIP:
+    Description: Adresse IP publique de lapplication web
+    Value: !Ref ElasticIpAllocationId
+  DatabasePrivateIP:
+    Description: Adresse IP privee de la base de donnees
+    Value: !GetAtt DatabaseInstance.PrivateIp
