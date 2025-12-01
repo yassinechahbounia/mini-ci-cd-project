@@ -19,3 +19,4 @@ frontend/build/
 .DS_Store
 *.swp
 .vscode/
+node_modules
