@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Security stack: security groups for WebApp and Database in existing VPC.
+
+Parameters:
+  MyHomeIp:
+    Type: String
+    Description: "Your public IP with /32 for SSH access (ex: 1.2.3.4/32)"
+
+Resources:
+
+  # Security Group for Web EC2 (public)
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for public WebApp EC2
+      VpcId: !ImportValue mini-ci-cd-VpcId
+      SecurityGroupIngress:
+        # HTTP from anywhere
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        # HTTPS from anywhere
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        # SSH only from your home IP
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          ##CidrIp: !Ref MyHomeIp
+      SecurityGroupEgress:
+        # Allow all outbound traffic
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+        # SSH only from your home IP
+        #- IpProtocol: tcp
+        #  FromPort: 22
+        #  ToPort: 22
+        #  CidrIp: 0.0.0.0/0
+          ##CidrIp: !Ref MyHomeIp
+      Tags:
+        - Key: Name
+          Value: mini-ci-cd-web-sg
+
+  # Security Group for DB EC2 (private)
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for private DB EC2
+      VpcId: !ImportValue mini-ci-cd-VpcId
+      SecurityGroupIngress:
+        # Allow MySQL only from WebSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref WebSecurityGroup
+      SecurityGroupEgress:
+        # Allow all outbound traffic (DB can respond / reach internal services)
+        - IpProtocol: -1
+          FromPort: 0
+          ToPort: 0
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: mini-ci-cd-db-sg
+
+Outputs:
+  WebSecurityGroupId:
+    Description: Security group ID for Web EC2
+    Value: !Ref WebSecurityGroup
+    Export:
+      Name: mini-ci-cd-WebSecurityGroupId
+
+  DbSecurityGroupId:
+    Description: Security group ID for DB EC2
+    Value: !Ref DbSecurityGroup
+    Export:
+      Name: mini-ci-cd-DbSecurityGroupId

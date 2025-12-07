@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Monitoring stack: SNS topic and CloudWatch CPU alarm for Web EC2.
+
+Parameters:
+  AlertEmail:
+    Type: String
+    Description: Email address to receive CPU alarms
+  WebEc2InstanceId:
+    Type: String
+    Description: ID of the Web EC2 instance to monitor
+
+Resources:
+
+  AlertTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: mini-ci-cd-alerts
+      TopicName: mini-ci-cd-alerts
+
+  AlertSubscriptionEmail:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: !Ref AlertEmail
+      TopicArn: !Ref AlertTopic
+
+  WebCpuHighAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: CPU > 80% for 5 minutes on Web EC2
+      Namespace: AWS/EC2
+      MetricName: CPUUtilization
+      Statistic: Average
+      Period: 60           # 1 minute
+      EvaluationPeriods: 5 # 5 minutes consécutives
+      Threshold: 80
+      ComparisonOperator: GreaterThanThreshold
+      Dimensions:
+        - Name: InstanceId
+          Value: !Ref WebEc2InstanceId
+      AlarmActions:
+        - !Ref AlertTopic
+      OKActions:
+        - !Ref AlertTopic
+      TreatMissingData: notBreaching

@@ -1,0 +1,48 @@
+<div class="container">
+  <h1>Users</h1>
+
+  <form (ngSubmit)="save()" class="form">
+    <div class="field">
+      <label>Username</label>
+      <input
+        type="text"
+        placeholder="Username"
+        [(ngModel)]="newUser.username"
+        name="username"
+        required
+      />
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <input
+        type="email"
+        placeholder="Email"
+        [(ngModel)]="newUser.email"
+        name="email"
+        required
+      />
+    </div>
+
+    <div class="buttons">
+      <button type="submit">
+        {{ editingUserId ? 'Update' : 'Add' }}
+      </button>
+      <button type="button" *ngIf="editingUserId" (click)="cancelEdit()">
+        Cancel
+      </button>
+    </div>
+  </form>
+
+  <ul class="list">
+    <li *ngFor="let u of users" class="list-item">
+      <span class="user-info">
+        {{ u.username }} ({{ u.email }})
+      </span>
+      <span class="actions">
+        <button (click)="startEdit(u)">Edit</button>
+        <button (click)="deleteUser(u.id)">Delete</button>
+      </span>
+    </li>
+  </ul>
+</div>

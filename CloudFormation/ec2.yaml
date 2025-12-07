@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  EC2 stack: public WebApp instance and private DB instance
+  using existing VPC, subnets, security groups and Elastic IP.
+
+Parameters:
+  WebAmiId:
+    Type: String
+    Description: AMI ID for WebApp EC2 (e.g. ami-xxxxxxxx)
+  DbAmiId:
+    Type: String
+    Description: AMI ID for DB EC2 (e.g. ami-xxxxxxxx)
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: EC2 instance type for both Web and DB
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Existing EC2 KeyPair for SSH access
+  WebElasticIpAllocationId:
+    Type: String
+    Default: eipalloc-07db1ed84c4491d56
+    Description: Allocation ID of existing Elastic IP for WebApp EC2
+
+Resources:
+
+  # Web EC2 in public subnet
+  WebEc2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref WebAmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !ImportValue mini-ci-cd-PublicSubnetId
+          AssociatePublicIpAddress: true
+          GroupSet:
+            - !ImportValue mini-ci-cd-WebSecurityGroupId
+      #nstallation Java/Node/Nginx
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash -xe
+          exec > /var/log/userdata-web.log 2>&1
+
+          # Update system
+          dnf update -y
+
+          # Install Java (Amazon Corretto 17)
+          dnf install -y java-17-amazon-corretto-devel
+
+          # Install Node.js (via NodeSource repo)
+          dnf install -y curl
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+          dnf install -y nodejs
+
+          # Install Nginx
+          dnf install -y nginx
+          systemctl enable nginx
+          systemctl start nginx
+
+          # Simple index page to vérifier Nginx
+          echo "<h1>WebApp EC2 is up</h1>" > /usr/share/nginx/html/index.html
+      Tags:
+        - Key: Name
+          Value: mini-ci-cd-web-ec2
+
+  # Associate existing Elastic IP to Web EC2
+  WebEc2EipAssociation:
+    Type: AWS::EC2::EIPAssociation
+    Properties:
+      AllocationId: !Ref WebElasticIpAllocationId
+      InstanceId: !Ref WebEc2Instance
+
+  # DB EC2 in private subnet
+  DbEc2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref DbAmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !ImportValue mini-ci-cd-PrivateSubnetId
+          AssociatePublicIpAddress: false
+          GroupSet:
+            - !ImportValue mini-ci-cd-DbSecurityGroupId
+      #CREATE DB MYSQL
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          # Log to a file
+          exec > /var/log/userdata-db.log 2>&1
+
+          dnf update -y
+
+          # Install MariaDB server (MySQL compatible)
+          dnf install -y mariadb105-server
+
+          systemctl enable mariadb
+          systemctl start mariadb
+
+          # Create database and user
+          DB_NAME=app_db
+          DB_USER=app_user
+          DB_PASSWORD='123456'
+
+          mysql -u root <<EOF
+          CREATE DATABASE IF NOT EXISTS app_db;
+          CREATE USER IF NOT EXISTS 'app_user'@'%' IDENTIFIED BY '123456';
+          GRANT ALL PRIVILEGES ON $app_db.* TO 'app_user'@'%';
+          FLUSH PRIVILEGES;
+          EOF
+
+          # Allow MariaDB to listen on all interfaces
+          sed -i "s/^bind-address.*/bind-address=0.0.0.0/" /etc/my.cnf.d/mariadb-server.cnf || true
+          systemctl restart mariadb
+      Tags:
+        - Key: Name
+          Value: mini-ci-cd-db-ec2
+
+Outputs:
+  WebEc2InstanceId:
+    Description: ID of the WebApp EC2 instance
+    Value: !Ref WebEc2Instance
+    Export:
+      Name: mini-ci-cd-WebEc2InstanceId
+
+  DbEc2InstanceId:
+    Description: ID of the DB EC2 instance
+    Value: !Ref DbEc2Instance
+    Export:
+      Name: mini-ci-cd-DbEc2InstanceId
