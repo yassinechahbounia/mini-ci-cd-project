@@ -9,6 +9,12 @@ on:
 
 env:
   AWS_REGION: us-east-1
+  WEB_AMI_ID: ami-0fa3fe0fa7920f68e
+  DB_AMI_ID: ami-0fa3fe0fa7920f68e
+  EC2_INSTANCE_TYPE: t3.micro
+  EC2_KEY_NAME: key-pair
+  ALERT_EMAIL: ychahbounia@gmail.com
+  WEB_INSTANCE_ID: i-0bdd3b6dd8e7b1c3c
 
 jobs:
   build-test:
@@ -29,6 +35,12 @@ jobs:
         working-directory: webapp/backend
         run: mvn -B clean test package
 
+      - name: Upload backend jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: webapp/backend/target/backend-0.0.1-SNAPSHOT.jar
+
       # ---------- Frontend: Angular ----------
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -42,6 +54,12 @@ jobs:
       - name: Frontend - Build Angular
         working-directory: webapp/frontend
         run: npm run build -- --configuration production
+
+      - name: Upload frontend dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: webapp/frontend/dist
 
   deploy-infra:
     runs-on: ubuntu-latest
@@ -83,10 +101,10 @@ jobs:
           template: CloudFormation/ec2.yaml
           no-fail-on-empty-changeset: "true"
           parameter-overrides: |
-            WebAmiId=ami-0fa3fe0fa7920f68e
-            DbAmiId=ami-0fa3fe0fa7920f68e
-            InstanceType=t3.micro
-            KeyName=key-pair
+            WebAmiId=${{ env.WEB_AMI_ID }}
+            DbAmiId=${{ env.DB_AMI_ID }}
+            InstanceType=${{ env.EC2_INSTANCE_TYPE }}
+            KeyName=${{ env.EC2_KEY_NAME }}
             WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
 
       # ---------- Deploy monitoring ----------
@@ -97,5 +115,49 @@ jobs:
           template: CloudFormation/monitoring.yaml
           no-fail-on-empty-changeset: "true"
           parameter-overrides: |
-            AlertEmail=ychahbounia@gmail.com
-            WebEc2InstanceId=i-0bdd3b6dd8e7b1c3c
+            AlertEmail=${{ env.ALERT_EMAIL }}
+            WebEc2InstanceId=${{ env.WEB_INSTANCE_ID }}
+
+  deploy-app:
+    runs-on: ubuntu-latest
+    needs: deploy-infra
+    environment: production
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Restore backend build
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+          path: backend-artifact
+
+      - name: Restore frontend build
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-artifact
+
+      - name: Configure SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan 52.71.4.237 >> ~/.ssh/known_hosts
+
+      - name: Copy backend jar to EC2
+        run: |
+          scp backend-artifact/backend-0.0.1-SNAPSHOT.jar ec2-user@52.71.4.237:/home/ec2-user/app.jar
+
+      - name: Copy frontend dist to EC2
+        run: |
+          ssh ec2-user@52.71.4.237 "mkdir -p /home/ec2-user/frontend"
+          scp -r frontend-artifact/dist/frontend/* ec2-user@52.71.4.237:/home/ec2-user/frontend/
+
+      - name: Restart backend service
+        run: |
+          ssh ec2-user@52.71.4.237 "
+            pkill -f 'app.jar' || true
+            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
+          "
