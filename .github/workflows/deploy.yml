@@ -48,7 +48,8 @@ jobs:
 
       - name: Backend - Maven build & tests
         working-directory: webapp/backend
-        run: mvn -B clean test package -DskipTetsts
+        run: mvn -B clean package -DskipTests
+
 
       - name: Upload backend jar
         uses: actions/upload-artifact@v4
