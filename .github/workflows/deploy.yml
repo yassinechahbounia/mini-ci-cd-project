@@ -96,20 +96,20 @@ jobs:
       # ---------- Deploy networking ----------
       - name: Deploy networking stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        continue-on-error: true ####
+        ##continue-on-error: true ####
         with:
           name: mini-ci-cd-networking
           template: CloudFormation/networking.yaml
-          no-fail-on-empty-changeset: "true"
+          ##no-fail-on-empty-changeset: "true"
 
       # ---------- Deploy security ----------
       - name: Deploy security stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        continue-on-error: true
+        #continue-on-error: true
         with:
           name: mini-ci-cd-security
           template: CloudFormation/security.yaml
-          no-fail-on-empty-changeset: "true"
+          #no-fail-on-empty-changeset: "true"
           parameter-overrides: | 
             MyHomeIp=52.71.4.237/32
 
@@ -118,11 +118,11 @@ jobs:
       # ---------- Deploy EC2 ----------
       - name: Deploy ec2 stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        continue-on-error: true
+        #continue-on-error: true
         with:
           name: mini-ci-cd-ec2
           template: CloudFormation/ec2.yaml
-          no-fail-on-empty-changeset: "true"
+          #no-fail-on-empty-changeset: "true"
           parameter-overrides: |
             WebAmiId=${{ env.WEB_AMI_ID }}
             DbAmiId=${{ env.DB_AMI_ID }}
@@ -133,11 +133,11 @@ jobs:
       # ---------- Deploy monitoring ----------
       - name: Deploy monitoring stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        continue-on-error: true
+        #continue-on-error: true
         with:
           name: mini-ci-cd-monitoring
           template: CloudFormation/monitoring.yaml
-          no-fail-on-empty-changeset: "true"
+          #no-fail-on-empty-changeset: "true"
           parameter-overrides: |
             AlertEmail=${{ env.ALERT_EMAIL }}
             WebEc2InstanceId=${{ env.WEB_INSTANCE_ID }}
