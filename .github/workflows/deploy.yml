@@ -105,6 +105,7 @@ jobs:
       # ---------- Deploy security ----------
       - name: Deploy security stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
+        continue-on-error: true
         with:
           name: mini-ci-cd-security
           template: CloudFormation/security.yaml
@@ -117,6 +118,7 @@ jobs:
       # ---------- Deploy EC2 ----------
       - name: Deploy ec2 stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
+        continue-on-error: true
         with:
           name: mini-ci-cd-ec2
           template: CloudFormation/ec2.yaml
@@ -131,6 +133,7 @@ jobs:
       # ---------- Deploy monitoring ----------
       - name: Deploy monitoring stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
+        continue-on-error: true
         with:
           name: mini-ci-cd-monitoring
           template: CloudFormation/monitoring.yaml
