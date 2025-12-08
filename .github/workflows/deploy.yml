@@ -115,7 +115,7 @@ jobs:
 
 
 
-      # ---------- Deploy EC2 ----------
+      # ---------- Deploy EC2 ---------
       - name: Deploy ec2 stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         #continue-on-error: true
