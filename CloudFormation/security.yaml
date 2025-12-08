@@ -5,7 +5,7 @@ Description: >
 Parameters:
   MyHomeIp:
     Type: String
-    Description: "Your public IP with /32 for SSH access (ex: 1.2.3.4/32)"
+    Description: "Your public IP with /32 for SSH access (ex: 52.71.4.237/32)"
 
 Resources:
 
