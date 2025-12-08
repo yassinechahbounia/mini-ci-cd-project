@@ -19,21 +19,20 @@ env:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    ###############################
+
     services:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_DATABASE: 
+          MYSQL_DATABASE: app_db
           MYSQL_ROOT_PASSWORD: 123456
         ports:
           - 3306:3306
         options: >-
-          --health-cmd="mysqladmin ping -h localhost -prootpass"
+          --health-cmd="mysqladmin ping -h localhost -p123456"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
-    ##############################
 
     steps:
       - name: Checkout sources
@@ -49,7 +48,6 @@ jobs:
       - name: Backend - Maven build & tests
         working-directory: webapp/backend
         run: mvn -B clean package -DskipTests
-
 
       - name: Upload backend jar
         uses: actions/upload-artifact@v4
@@ -96,47 +94,42 @@ jobs:
       # ---------- Deploy networking ----------
       - name: Deploy networking stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        ##continue-on-error: true ####
         with:
           name: mini-ci-cd-networking
           template: CloudFormation/networking.yaml
-          ##no-fail-on-empty-changeset: "true"
+          no-fail-on-empty-changeset: "true"
 
       # ---------- Deploy security ----------
       - name: Deploy security stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        #continue-on-error: true
         with:
           name: mini-ci-cd-security
           template: CloudFormation/security.yaml
-          #no-fail-on-empty-changeset: "true"
-          parameter-overrides: | 
+          no-fail-on-empty-changeset: "true"
+          parameter-overrides: |
             MyHomeIp=52.71.4.237/32
 
-
-
-      # ---------- Deploy EC2 ---------
+      # ---------- Deploy EC2 ----------
       - name: Deploy ec2 stack
-  uses: aws-actions/aws-cloudformation-github-deploy@v1
-  with:
-    name: mini-ci-cd-ec2
-    template: CloudFormation/ec2.yaml
-    parameter-overrides: |
-      WebAmiId=ami-0fa3fe0fa7920f68e
-      DbAmiId=ami-0fa3fe0fa7920f68e
-      InstanceType=t3.micro
-      KeyName=key-pair
-      WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
-
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: mini-ci-cd-ec2
+          template: CloudFormation/ec2.yaml
+          no-fail-on-empty-changeset: "true"
+          parameter-overrides: |
+            WebAmiId=ami-0fa3fe0fa7920f68e
+            DbAmiId=ami-0fa3fe0fa7920f68e
+            InstanceType=t3.micro
+            KeyName=key-pair
+            WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
 
       # ---------- Deploy monitoring ----------
       - name: Deploy monitoring stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        #continue-on-error: true
         with:
           name: mini-ci-cd-monitoring
           template: CloudFormation/monitoring.yaml
-          #no-fail-on-empty-changeset: "true"
+          no-fail-on-empty-changeset: "true"
           parameter-overrides: |
             AlertEmail=${{ env.ALERT_EMAIL }}
             WebEc2InstanceId=${{ env.WEB_INSTANCE_ID }}
