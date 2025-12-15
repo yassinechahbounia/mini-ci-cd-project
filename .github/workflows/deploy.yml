@@ -121,7 +121,7 @@ jobs:
             WebAmiId=ami-0fa3fe0fa7920f68e
             DbAmiId=ami-0fa3fe0fa7920f68e
             InstanceType=t3.micro
-            KeyName=key-pair
+            KeyName=${{ env.EC2_KEY_NAME }}
             WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
 
       # ---------- Deploy monitoring ----------
