@@ -76,67 +76,66 @@ jobs:
           path: webapp/frontend/dist
 
   deploy-infra:
-  runs-on: ubuntu-latest
-  needs: build-test
-  environment: production
+    runs-on: ubuntu-latest
+    needs: build-test
+    environment: production
 
-  steps:
-    - name: Checkout sources
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-    # ---------- Deploy networking ----------
-    - name: Deploy networking stack
-      uses: aws-actions/aws-cloudformation-github-deploy@v1
-      continue-on-error: true
-      with:
-        name: mini-ci-cd-networking
-        template: CloudFormation/networking.yaml
-        no-fail-on-empty-changeset: "true"
+      # ---------- Deploy networking ----------
+      - name: Deploy networking stack
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        continue-on-error: true
+        with:
+          name: mini-ci-cd-networking
+          template: CloudFormation/networking.yaml
+          no-fail-on-empty-changeset: "true"
 
-    # ---------- Deploy security ----------
-    - name: Deploy security stack
-      uses: aws-actions/aws-cloudformation-github-deploy@v1
-      continue-on-error: true
-      with:
-        name: mini-ci-cd-security
-        template: CloudFormation/security.yaml
-        no-fail-on-empty-changeset: "true"
-        parameter-overrides: |
-          MyHomeIp=52.71.4.237/32
+      # ---------- Deploy security ----------
+      - name: Deploy security stack
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        continue-on-error: true
+        with:
+          name: mini-ci-cd-security
+          template: CloudFormation/security.yaml
+          no-fail-on-empty-changeset: "true"
+          parameter-overrides: |
+            MyHomeIp=52.71.4.237/32
 
-    # ---------- Deploy EC2 ----------
-    - name: Deploy ec2 stack
-      uses: aws-actions/aws-cloudformation-github-deploy@v1
-      with:
-        name: mini-ci-cd-ec2
-        template: CloudFormation/ec2.yaml
-        no-fail-on-empty-changeset: "true"
-        capabilities: CAPABILITY_IAM
-        parameter-overrides: |
-          WebAmiId=${{ env.WEB_AMI_ID }}
-          DbAmiId=${{ env.DB_AMI_ID }}
-          InstanceType=${{ env.EC2_INSTANCE_TYPE }}
-          KeyName=${{ env.EC2_KEY_NAME }}
-          WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
+      # ---------- Deploy EC2 ----------
+      - name: Deploy ec2 stack
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: mini-ci-cd-ec2
+          template: CloudFormation/ec2.yaml
+          no-fail-on-empty-changeset: "true"
+          capabilities: CAPABILITY_IAM
+          parameter-overrides: |
+            WebAmiId=${{ env.WEB_AMI_ID }}
+            DbAmiId=${{ env.DB_AMI_ID }}
+            InstanceType=${{ env.EC2_INSTANCE_TYPE }}
+            KeyName=${{ env.EC2_KEY_NAME }}
+            WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
 
-    # ---------- Deploy monitoring ----------
-    - name: Deploy monitoring stack
-      uses: aws-actions/aws-cloudformation-github-deploy@v1
-      with:
-        name: mini-ci-cd-monitoring
-        template: CloudFormation/monitoring.yaml
-        no-fail-on-empty-changeset: "true"
-        parameter-overrides: |
-          AlertEmail=${{ env.ALERT_EMAIL }}
-          WebEc2InstanceId=${{ env.WEB_INSTANCE_ID }}
-
+      # ---------- Deploy monitoring ----------
+      - name: Deploy monitoring stack
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: mini-ci-cd-monitoring
+          template: CloudFormation/monitoring.yaml
+          no-fail-on-empty-changeset: "true"
+          parameter-overrides: |
+            AlertEmail=${{ env.ALERT_EMAIL }}
+            WebEc2InstanceId=${{ env.WEB_INSTANCE_ID }}
 
   deploy-app:
     runs-on: ubuntu-latest
