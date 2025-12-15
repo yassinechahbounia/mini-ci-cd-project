@@ -109,7 +109,7 @@ jobs:
           no-fail-on-empty-changeset: "true"
           parameter-overrides: |
             MyHomeIp=52.71.4.237/32
-
+      ##################################
       # ---------- Deploy EC2 ----------
       - name: Deploy ec2 stack
         uses: aws-actions/aws-cloudformation-github-deploy@v1
