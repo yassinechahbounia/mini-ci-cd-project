@@ -118,11 +118,13 @@ jobs:
           template: CloudFormation/ec2.yaml
           no-fail-on-empty-changeset: "true"
           parameter-overrides: |
-            WebAmiId=ami-0fa3fe0fa7920f68e
-            DbAmiId=ami-0fa3fe0fa7920f68e
-            InstanceType=t3.micro
+            WebAmiId=${{ env.WEB_AMI_ID }}
+            DbAmiId=${{ env.DB_AMI_ID }}
+            InstanceType=${{ env.EC2_INSTANCE_TYPE }}
             KeyName=${{ env.EC2_KEY_NAME }}
             WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
+          capabilities: CAPABILITY_IAM
+
 
       # ---------- Deploy monitoring ----------
       - name: Deploy monitoring stack
