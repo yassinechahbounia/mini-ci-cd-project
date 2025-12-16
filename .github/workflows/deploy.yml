@@ -120,10 +120,10 @@ jobs:
           no-fail-on-empty-changeset: "true"
           capabilities: CAPABILITY_IAM
           parameter-overrides: |
-            WebAmiId=ami-0fa3fe0fa7920f68e
-            DbAmiId=ami-0fa3fe0fa7920f68e
-            InstanceType=t3.micro
-            KeyName=key-pair
+            WebAmiId=${{ env.WEB_AMI_ID }}
+            DbAmiId=${{ env.DB_AMI_ID }}
+            InstanceType=${{ env.EC2_INSTANCE_TYPE }}
+            KeyName=${{ env.EC2_KEY_NAME }}
             WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
 
       # ---------- Deploy monitoring ----------
@@ -180,4 +180,3 @@ jobs:
             pkill -f 'app.jar' || true
             nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
           "
-##
