@@ -119,11 +119,11 @@ jobs:
           template: CloudFormation/ec2.yaml
           no-fail-on-empty-changeset: "true"
           capabilities: CAPABILITY_IAM
-          parameter-overrides: |
-            WebAmiId=${{ env.WEB_AMI_ID }}
-            DbAmiId=${{ env.DB_AMI_ID }}
-            InstanceType=${{ env.EC2_INSTANCE_TYPE }}
-            KeyName=${{ env.EC2_KEY_NAME }}
+          parameter-overrides: >-
+            WebAmiId=${{ env.WEB_AMI_ID }},
+            DbAmiId=${{ env.DB_AMI_ID }},
+            InstanceType=${{ env.EC2_INSTANCE_TYPE }},
+            KeyName=${{ env.EC2_KEY_NAME }},
             WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
 
       # ---------- Deploy monitoring ----------
