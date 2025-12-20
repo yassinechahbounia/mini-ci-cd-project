@@ -180,4 +180,3 @@ jobs:
             pkill -f 'app.jar' || true
             nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
           "
-###############
