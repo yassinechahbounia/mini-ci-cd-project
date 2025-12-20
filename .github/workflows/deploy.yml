@@ -108,7 +108,7 @@ jobs:
           name: mini-ci-cd-security
           template: CloudFormation/security.yaml
           no-fail-on-empty-changeset: "true"
-          parameter-overrides: |
+          parameter-overrides: >-
             MyHomeIp=52.71.4.237/32
 
       # ---------- Deploy EC2 ----------
@@ -133,7 +133,7 @@ jobs:
           name: mini-ci-cd-monitoring
           template: CloudFormation/monitoring.yaml
           no-fail-on-empty-changeset: "true"
-          parameter-overrides: |
+          parameter-overrides: >-
             AlertEmail=${{ env.ALERT_EMAIL }}
             WebEc2InstanceId=${{ env.WEB_INSTANCE_ID }}
 
