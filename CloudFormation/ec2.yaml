@@ -121,3 +121,4 @@ Outputs:
     Value: !Ref DbEc2Instance
     Export:
       Name: mini-ci-cd-DbEc2InstanceId
+#
