@@ -176,10 +176,8 @@ jobs:
 
       - name: Restart backend service
         run: |
-          ssh -n ec2-user@52.71.4.237 "
+          ssh ec2-user@52.71.4.237 "
             pkill -f 'app.jar' || true
-            sleep 1
-            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > /home/ec2-user/app.log 2>&1 < /dev/null &
-            sleep 3
-            pgrep -f 'app.jar'
+            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
           "
+#
