@@ -3,10 +3,10 @@ param(
 )
 
 # Paramètres à adapter
-$repoOwner = "yassinechahbounia"
-$repoName  = "mini-ci-cd-project"
+$repoOwner   = "yassinechahbounia"
+$repoName    = "mini-ci-cd-project"
 $workflowFile = "deploy.yml"           # nom du fichier de workflow
-$region = "us-east-1"
+$region      = "us-east-1"
 $stacksToDelete = @(
     "mini-ci-cd-networking",
     "mini-ci-cd-security",
@@ -23,12 +23,22 @@ function Run-GitPush {
 function Wait-Workflow {
     Write-Host "Attente de la fin du workflow GitHub Actions..."
     while ($true) {
-        $runsJson = gh api `
-            "repos/$repoOwner/$repoName/actions/workflows/$workflowFile/runs?per_page=1" `
-            | ConvertFrom-Json
+        $raw = gh api "repos/$repoOwner/$repoName/actions/workflows/$workflowFile/runs?per_page=1" 2>$null
+        if (-not $raw) {
+            Write-Host "Aucun run trouvé (ou erreur API), nouvelle tentative dans 15s..."
+            Start-Sleep -Seconds 15
+            continue
+        }
 
-        $lastRun = $runsJson.workflow_runs[0]
-        $status = $lastRun.status
+        $runsJson = $raw | ConvertFrom-Json
+        if (-not $runsJson.workflow_runs -or $runsJson.workflow_runs.Count -eq 0) {
+            Write-Host "Aucun run trouvé, nouvelle tentative dans 15s..."
+            Start-Sleep -Seconds 15
+            continue
+        }
+
+        $lastRun   = $runsJson.workflow_runs[0]
+        $status    = $lastRun.status
         $conclusion = $lastRun.conclusion
 
         Write-Host "Status: $status - Conclusion: $conclusion"
@@ -41,17 +51,37 @@ function Wait-Workflow {
     }
 }
 
+function Stack-Exists {
+    param([string]$name)
+
+    $out = aws cloudformation describe-stacks `
+        --stack-name $name --region $region 2>$null
+
+    return -not [string]::IsNullOrWhiteSpace($out)
+}
+
 function Delete-Stacks {
     param([string[]]$names)
 
     foreach ($name in $names) {
-        Write-Host "Suppression de la stack CloudFormation $name..."
-        aws cloudformation delete-stack --stack-name $name --region $region | Out-Null
+        if (Stack-Exists -name $name) {
+            Write-Host "Suppression de la stack CloudFormation $name..."
+            aws cloudformation delete-stack --stack-name $name --region $region | Out-Null
+        }
+        else {
+            Write-Host "Stack $name inexistante (déjà supprimée) – on passe."
+        }
     }
 
     Write-Host "Attente de la suppression complète..."
     foreach ($name in $names) {
-        aws cloudformation wait stack-delete-complete --stack-name $name --region $region 2>$null
+        if (Stack-Exists -name $name) {
+            Write-Host "  Attente de DELETE_COMPLETE pour $name..."
+            aws cloudformation wait stack-delete-complete --stack-name $name --region $region 2>$null
+        }
+        else {
+            Write-Host "  $name déjà supprimée – pas de wait."
+        }
     }
 }
 
