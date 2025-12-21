@@ -155,8 +155,8 @@ jobs:
       - name: Restore frontend build
         uses: actions/download-artifact@v4
         with:
-          name: frontend-artifact
-          path: frontend-dist
+          name: frontend-dist
+          path: frontend-artifact
 
       - name: Configure SSH key
         run: |
@@ -165,20 +165,14 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan 52.71.4.237 >> ~/.ssh/known_hosts
 
-      - name: List files for debug
-         run: ls -R frontend-artifac
-
       - name: Copy backend jar to EC2
         run: |
           scp backend-artifact/backend-0.0.1-SNAPSHOT.jar ec2-user@52.71.4.237:/home/ec2-user/app.jar
 
       - name: Copy frontend dist to EC2
         run: |
-          # Créer le dossier de destination
           ssh ec2-user@52.71.4.237 "mkdir -p /home/ec2-user/frontend"
-          
-          # Copier le contenu (sans l'astérisque si possible pour éviter les erreurs de stat)
-          scp -r frontend-dist/. ec2-user@52.71.4.237:/home/ec2-user/frontend/
+          scp -r frontend-artifact/dist/frontend/ ec2-user@52.71.4.237:/home/ec2-user/frontend/
 
       - name: Restart backend service
         run: |
