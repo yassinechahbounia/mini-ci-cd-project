@@ -154,7 +154,7 @@ jobs:
       - name: Deploy frontend
         run: |
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "mkdir -p /tmp/frontend"
-          scp -r frontend/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
+          scp -r frontend/frontend/browser/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
             sudo mkdir -p /usr/share/nginx/html
             sudo rm -rf /usr/share/nginx/html/* || true
