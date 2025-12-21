@@ -156,15 +156,15 @@ jobs:
 
       # ---- Deploy Frontend ----
       - name: Deploy frontend
-    run: |
-      # Créer un dossier temporaire sur l'EC2
-      ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "mkdir -p /tmp/frontend"
-      # Copier le build Angular depuis le bon chemin (dist/*, pas dist/frontend/*)
-      scp -r frontend/dist/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
-      # Remplacer le contenu servi par Nginx
-      ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
-        sudo mkdir -p /usr/share/nginx/html
-        sudo rm -rf /usr/share/nginx/html/* || true
-        sudo cp -r /tmp/frontend/* /usr/share/nginx/html/
-        sudo systemctl restart nginx || sudo systemctl start nginx
-      EOF
+        run: |
+          # Créer un dossier temporaire sur l'EC2
+          ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "mkdir -p /tmp/frontend"
+          # Copier le build Angular depuis le bon chemin (dist/*, pas dist/frontend/*)
+          scp -r frontend/dist/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
+          # Remplacer le contenu servi par Nginx
+          ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
+            sudo mkdir -p /usr/share/nginx/html
+            sudo rm -rf /usr/share/nginx/html/* || true
+            sudo cp -r /tmp/frontend/* /usr/share/nginx/html/
+            sudo systemctl restart nginx || sudo systemctl start nginx
+          EOF
