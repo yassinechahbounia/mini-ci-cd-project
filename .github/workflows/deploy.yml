@@ -61,7 +61,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: webapp/frontend/dist/frontend
+          path: webapp/frontend/dist/frontend/browser
 
 ############################
 # 2️⃣ DEPLOY INFRA
@@ -136,11 +136,7 @@ jobs:
       
       - name: Debug frontend artifact
         run: |
-          echo "PWD:"
-          pwd
-          echo "Contenu du dossier frontend :"
-          ls
-          echo "Contenu du dossier frontend :"
+          echo "Contenu de frontend :"
           ls -R frontend
       
       - name: Configure SSH
@@ -163,9 +159,8 @@ jobs:
       - name: Deploy frontend
         run: |
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "mkdir -p /tmp/frontend"
-          scp -r frontend/frontend/browser/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
+          scp -r frontend/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
-            sudo mkdir -p /usr/share/nginx/html
             sudo rm -rf /usr/share/nginx/html/* || true
             sudo cp -r /tmp/frontend/* /usr/share/nginx/html/
             sudo chown -R nginx:nginx /usr/share/nginx/html
