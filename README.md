@@ -1,46 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>README - CI/CD Mini Project</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            line-height: 1.6;
-            color: #24292e;
-            max-width: 900px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-        h1, h2, h3 { border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
-        code {
-            background-color: rgba(27, 31, 35, 0.05);
-            border-radius: 3px;
-            padding: 0.2em 0.4em;
-            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-            font-size: 85%;
-        }
-        pre {
-            background-color: #f6f8fa;
-            border-radius: 6px;
-            padding: 16px;
-            overflow: auto;
-            font-size: 85%;
-            line-height: 1.45;
-        }
-        pre code { background-color: transparent; padding: 0; }
-        table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-        table, th, td { border: 1px solid #dfe2e5; }
-        th, td { padding: 8px 13px; text-align: left; }
-        th { background-color: #f6f8fa; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 10px; color: white; font-size: 12px; font-weight: bold; text-decoration: none; }
-        .badge-blue { background-color: #007bff; }
-        .badge-orange { background-color: #ff8c00; }
-    </style>
-</head>
-<body>
-
     <h1>🚀 CI/CD Mini Project – Spring Boot | Angular | AWS</h1>
 
     <p>
@@ -139,6 +96,3 @@ spring.datasource.password=123456</code></pre>
 
     <hr>
     <p><em>💡 Projet réalisé dans le cadre du cursus Simplon.</em></p>
-
-</body>
-</html>
