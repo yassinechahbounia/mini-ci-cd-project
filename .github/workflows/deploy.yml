@@ -176,8 +176,21 @@ jobs:
 
       - name: Restart backend service
         run: |
-          ssh ec2-user@52.71.4.237 "
+          # Le -n empêche SSH de lire stdin (crucial pour nohup)
+          ssh -n ec2-user@52.71.4.237 "
+            # Arrêter l'ancienne application
             pkill -f 'app.jar' || true
-            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
+            
+            # Lancement avec :
+            # 1. Chemin absolu pour Java (plus sûr)
+            # 2. Redirection complète des sorties (> ... 2>&1)
+            # 3. Fermeture de l'entrée standard (< /dev/null)
+            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > /home/ec2-user/app.log 2>&1 < /dev/null &
+            
+            # Petit délai pour laisser Java démarrer
+            sleep 5
+            
+            # Vérifier que le processus tourne (si pgrep échoue, le job GitHub sera rouge)
+            pgrep -f 'app.jar'
           "
 #
