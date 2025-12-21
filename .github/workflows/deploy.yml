@@ -133,7 +133,12 @@ jobs:
         with:
           name: frontend-dist
           path: frontend    # frontend contient directement index.html, main.*.js, etc.
-
+      
+      - name: Debug frontend artifact
+        run: |
+          echo "Contenu du dossier frontend :"
+          ls -R frontend
+      
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
