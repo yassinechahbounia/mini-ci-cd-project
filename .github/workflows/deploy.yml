@@ -139,6 +139,8 @@ jobs:
           echo "PWD:"
           pwd
           echo "Contenu du dossier frontend :"
+          ls
+          echo "Contenu du dossier frontend :"
           ls -R frontend
       
       - name: Configure SSH
