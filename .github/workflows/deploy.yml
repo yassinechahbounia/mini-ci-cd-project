@@ -54,14 +54,14 @@ jobs:
 
       - name: Build frontend
         working-directory: webapp/frontend
-        run: npm run build -- --configuration production
+        run: npm run build 
 
       # On enregistre directement ce qui doit aller dans /usr/share/nginx/html
       - name: Upload frontend artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
-          path: webapp/frontend/dist/browser
+          path: webapp/frontend/dist/frontend
 
 ############################
 # 2️⃣ DEPLOY INFRA
