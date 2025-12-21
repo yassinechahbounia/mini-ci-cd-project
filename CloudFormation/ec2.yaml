@@ -37,24 +37,30 @@ Resources:
           AssociatePublicIpAddress: true
           GroupSet:
             - !ImportValue mini-ci-cd-WebSecurityGroupId
-            # Installation Nginx (simplifiée pour test)
+      #nstallation Java/Node/Nginx
       UserData:
         Fn::Base64: |
           #!/bin/bash -xe
           exec > /var/log/userdata-web.log 2>&1
 
-          # Mise à jour de base
+          # Update system
           dnf update -y
 
-          # Installation de Nginx
-          dnf install -y nginx
+          # Install Java (Amazon Corretto 17)
+          dnf install -y java-17-amazon-corretto-devel
 
+          # Install Node.js (via NodeSource repo)
+          dnf install -y curl
+          curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+          dnf install -y nodejs
+
+          # Install Nginx
+          dnf install -y nginx
           systemctl enable nginx
           systemctl start nginx
 
-          # Page de test
+          # Simple index page to vérifier Nginx
           echo "<h1>WebApp EC2 is up</h1>" > /usr/share/nginx/html/index.html
-
       Tags:
         - Key: Name
           Value: mini-ci-cd-web-ec2
