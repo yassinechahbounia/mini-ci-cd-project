@@ -37,29 +37,20 @@ Resources:
           AssociatePublicIpAddress: true
           GroupSet:
             - !ImportValue mini-ci-cd-WebSecurityGroupId
-      #nstallation Java/Node/Nginx
+      # Installation Nginx (simplifiée)
       UserData:
         Fn::Base64: |
           #!/bin/bash -xe
           exec > /var/log/userdata-web.log 2>&1
 
-          # Update system
           dnf update -y
 
-          # Install Java (Amazon Corretto 17)
-          dnf install -y java-17-amazon-corretto-devel
-
-          # Install Node.js (via NodeSource repo)
-          dnf install -y curl
-          curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-          dnf install -y nodejs
-
-          # Install Nginx
           dnf install -y nginx
+
           systemctl enable nginx
           systemctl start nginx
 
-          # Simple index page to vérifier Nginx
+          mkdir -p /usr/share/nginx/html
           echo "<h1>WebApp EC2 is up</h1>" > /usr/share/nginx/html/index.html
       Tags:
         - Key: Name
@@ -85,11 +76,10 @@ Resources:
           AssociatePublicIpAddress: false
           GroupSet:
             - !ImportValue mini-ci-cd-DbSecurityGroupId
-      #CREATE DB MYSQL
+      # CREATE DB MYSQL
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
-          # Log to a file
           exec > /var/log/userdata-db.log 2>&1
 
           dnf update -y
