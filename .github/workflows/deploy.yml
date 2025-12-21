@@ -158,3 +158,5 @@ jobs:
             sudo cp -r /tmp/frontend/* /usr/share/nginx/html/
             sudo systemctl restart nginx
           EOF
+
+##
