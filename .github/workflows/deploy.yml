@@ -56,11 +56,14 @@ jobs:
         working-directory: webapp/frontend
         run: npm run build -- --configuration production
 
+      # ⬇️ On enregistre directement le contenu qui doit aller dans Nginx
       - name: Upload frontend artifact
         uses: actions/upload-artifact@v4
         with:
+          # si dans angular.json tu as "outputPath": "dist/browser"
           name: frontend-dist
-          path: webapp/frontend/dist
+          path: webapp/frontend/dist/browser
+
 
   ############################
   # 2️⃣ DEPLOY INFRA
@@ -110,9 +113,6 @@ jobs:
             KeyName=${{ env.EC2_KEY_NAME }},
             WebElasticIpAllocationId=eipalloc-07db1ed84c4491d56
 
-  ############################
-  # 3️⃣ DEPLOY APP
-  ############################
   deploy-app:
     runs-on: ubuntu-latest
     needs: deploy-infra
@@ -131,13 +131,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-dist
-          path: frontend/dist
-      ##############
-      - name: Debug frontend artifact
-        run: |
-          echo "Contenu du dossier frontend :"
-          ls -R frontend 
-      ###########################
+          path: frontend    # → frontend contient directement index.html, main.*.js, etc.
+
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
@@ -154,14 +149,17 @@ jobs:
             nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
           EOF
 
-      # ---- Deploy Frontend ----
+      # ---- Deploy Frontend (100% auto) ----
       - name: Deploy frontend
         run: |
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "mkdir -p /tmp/frontend"
-          scp -r frontend/dist/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
+          scp -r frontend/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
             sudo mkdir -p /usr/share/nginx/html
             sudo rm -rf /usr/share/nginx/html/* || true
             sudo cp -r /tmp/frontend/* /usr/share/nginx/html/
+            sudo chown -R nginx:nginx /usr/share/nginx/html
+            sudo chmod -R 755 /usr/share/nginx/html
             sudo systemctl restart nginx || sudo systemctl start nginx
           EOF
+
