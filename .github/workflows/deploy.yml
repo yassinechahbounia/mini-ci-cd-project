@@ -136,6 +136,8 @@ jobs:
       
       - name: Debug frontend artifact
         run: |
+          echo "PWD:"
+          pwd
           echo "Contenu du dossier frontend :"
           ls -R frontend
       
