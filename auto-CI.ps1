@@ -23,9 +23,20 @@ function Run-GitPush {
 function Wait-Workflow {
     Write-Host "Attente de la fin du workflow GitHub Actions..."
     while ($true) {
-        $runsJson = gh api `
-            "repos/$repoOwner/$repoName/actions/workflows/$workflowFile/runs?per_page=1" `
-            | ConvertFrom-Json
+        $raw = gh api "repos/$repoOwner/$repoName/actions/workflows/$workflowFile/runs?per_page=1" 2>$null
+
+        if (-not $raw) {
+            Write-Host "Aucun run trouvé (ou erreur API), nouvelle tentative dans 15s..."
+            Start-Sleep -Seconds 15
+            continue
+        }
+
+        $runsJson = $raw | ConvertFrom-Json
+        if (-not $runsJson.workflow_runs -or $runsJson.workflow_runs.Count -eq 0) {
+            Write-Host "Aucun run trouvé, nouvelle tentative dans 15s..."
+            Start-Sleep -Seconds 15
+            continue
+        }
 
         $lastRun = $runsJson.workflow_runs[0]
         $status = $lastRun.status
@@ -40,6 +51,7 @@ function Wait-Workflow {
         Start-Sleep -Seconds 15
     }
 }
+
 
 function Delete-Stacks {
     param([string[]]$names)
