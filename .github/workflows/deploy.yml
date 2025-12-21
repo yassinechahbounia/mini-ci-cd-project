@@ -114,49 +114,52 @@ jobs:
 # 3️⃣ DEPLOY APP
 ############################
   deploy-app:
-    runs-on: ubuntu-latest
-    needs: deploy-infra
+  runs-on: ubuntu-latest
+  needs: deploy-infra
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+  steps:
+    - name: Checkout sources
+      uses: actions/checkout@v4
 
-      - name: Download backend
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-jar
-          path: backend
+    - name: Download backend
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-jar
+        path: backend
 
-      - name: Download frontend
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend
+    - name: Download frontend
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-dist
+        path: frontend
 
-      - name: Configure SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan ${{ env.WEB_PUBLIC_IP }} >> ~/.ssh/known_hosts
+    - name: Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan ${{ env.WEB_PUBLIC_IP }} >> ~/.ssh/known_hosts
 
-      # ---- Deploy Backend ----
-      - name: Deploy backend
-        run: |
-          scp backend/backend-0.0.1-SNAPSHOT.jar ec2-user@${{ env.WEB_PUBLIC_IP }}:/home/ec2-user/app.jar
-          ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
-            sudo pkill -f app.jar || true
-            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
-          EOF
+    # ---- Deploy Backend ----
+    - name: Deploy backend
+      run: |
+        scp backend/backend-0.0.1-SNAPSHOT.jar ec2-user@${{ env.WEB_PUBLIC_IP }}:/home/ec2-user/app.jar
+        ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
+          sudo pkill -f app.jar || true
+          nohup java -jar /home/ec2-user/app.jar --server.port=8080 > app.log 2>&1 &
+        EOF
 
-      # ---- Deploy Frontend ----
-      - name: Deploy frontend
-        run: |
-          ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "sudo rm -rf /usr/share/nginx/html/*"
-          scp -r frontend/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend
-          ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
-            sudo cp -r /tmp/frontend/* /usr/share/nginx/html/
-            sudo systemctl restart nginx
-          EOF
-
-##
+    # ---- Deploy Frontend ----
+    - name: Deploy frontend
+      run: |
+        # Créer un dossier temporaire sur l'EC2
+        ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "mkdir -p /tmp/frontend"
+        # Copier le build Angular (dossier dist/frontend)
+        scp -r frontend/dist/frontend/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
+        # Remplacer le contenu servi par Nginx
+        ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
+          sudo mkdir -p /usr/share/nginx/html
+          sudo rm -rf /usr/share/nginx/html/* || true
+          sudo cp -r /tmp/frontend/* /usr/share/nginx/html/
+          sudo systemctl restart nginx || sudo systemctl start nginx
+        EOF
