@@ -177,12 +177,20 @@ jobs:
       - name: Restart backend service
         run: |
           ssh ec2-user@52.71.4.237 "
-            # Tue l'ancien processus s'il existe
-            sudo pkill -f 'app.jar' || true
+            # Arrêter l'ancien processus (on enlève sudo si ec2-user a lancé le précédent)
+            pkill -f 'app.jar' || true
             
-            # Lancement avec redirection totale et désaffiliation du shell
-            # Le 'disown' est important pour détacher le job du shell actuel
-            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > /home/ec2-user/app.log 2>&1 & 
-            sleep 2
+            # Lancement robuste :
+            # 1. nohup pour ignorer le signal de déconnexion
+            # 2. > app.log 2>&1 pour rediriger les sorties
+            # 3. < /dev/null pour fermer l'entrée standard (CRITIQUE pour SSH)
+            # 4. & pour l'arrière-plan
+            nohup java -jar /home/ec2-user/app.jar --server.port=8080 > /home/ec2-user/app.log 2>&1 < /dev/null &
+            
+            # Laisser un court instant pour vérifier que le processus ne crash pas au démarrage
+            sleep 3
+            
+            # Vérifier si le processus tourne toujours
+            pgrep -f 'app.jar'
           "
 #
