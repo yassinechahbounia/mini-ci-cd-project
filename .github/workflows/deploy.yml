@@ -135,12 +135,8 @@ jobs:
       ##############
       - name: Debug frontend artifact
         run: |
-          echo "PWD:"
-          pwd
-          echo "Contenu du repo : "
-          ls
           echo "Contenu du dossier frontend :"
-          ls -R frontend || echo "frontend n'existe pas"
+          ls -R frontend 
       ###########################
       - name: Configure SSH
         run: |
@@ -161,11 +157,8 @@ jobs:
       # ---- Deploy Frontend ----
       - name: Deploy frontend
         run: |
-          # Créer un dossier temporaire sur l'EC2
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} "mkdir -p /tmp/frontend"
-          # Copier le build Angular depuis le bon chemin (dist/*, pas dist/frontend/*)
           scp -r frontend/dist/* ec2-user@${{ env.WEB_PUBLIC_IP }}:/tmp/frontend/
-          # Remplacer le contenu servi par Nginx
           ssh ec2-user@${{ env.WEB_PUBLIC_IP }} << 'EOF'
             sudo mkdir -p /usr/share/nginx/html
             sudo rm -rf /usr/share/nginx/html/* || true
