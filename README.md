@@ -139,8 +139,3 @@ aws cloudformation delete-stack --stack-name mini-ci-cd-networking</code></pre>
     <h2>👨‍💻 Auteur</h2>
     <p><strong>Yassine Chahbounia</strong><br>
     Email : <a href="mailto:ychahbounia@gmail.com">ychahbounia@gmail.com</a></p>
-<<<<<<< HEAD
-</div>
-=======
-</div>
->>>>>>> 52c5f4f (Version Final)
